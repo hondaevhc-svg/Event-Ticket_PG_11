@@ -64,17 +64,48 @@ def load_all_data():
     tickets_df = pd.read_sql("SELECT * FROM tickets", engine)
     menu_df = pd.read_sql("SELECT * FROM menu", engine)
 
-    # # Normalize / clean
-    # tickets_df["Visitor_Seats"] = pd.to_numeric(tickets_df.get("Visitor_Seats"), errors="coerce").fillna(0).astype(int)
-    # tickets_df["Sold"] = tickets_df.get("Sold", False).fillna(False).astype(bool)
-    # tickets_df["Visited"] = tickets_df.get("Visited", False).fillna(False).astype(bool)
-    # tickets_df["Customer"] = tickets_df.get("Customer", "").fillna("").astype(str)
-    # tickets_df["Admit"] = pd.to_numeric(tickets_df.get("Admit"), errors="coerce").fillna(1).astype(int)
-    # tickets_df["Seq"] = pd.to_numeric(tickets_df.get("Seq"), errors="coerce")
-    # tickets_df["TicketID"] = tickets_df.get("TicketID").astype(str).str.zfill(4)
-    # # Ensure timestamp is string for display but retain tz info if present
-    # tickets_df["Timestamp"] = tickets_df.get("Timestamp").astype(str)
-     # Normalize / clean - use safe column access
+    # Handle empty table
+    if tickets_df.empty:
+        # Return empty dataframe with required columns
+        tickets_df = pd.DataFrame(columns=["TicketID", "Category", "Type", "Admit", "Seq", "Sold", "Visited", "Customer", "Visitor_Seats", "Timestamp"])
+        return tickets_df, menu_df
+    
+    # Normalize column names - check for case-insensitive matches and common variations
+    column_map = {}
+    for col in tickets_df.columns:
+        col_lower = col.lower().strip()
+        # Map TicketID variations
+        if col_lower in ["ticketid", "ticket_id"] and col != "TicketID":
+            column_map[col] = "TicketID"
+        # Map other columns
+        elif col_lower == "visitor_seats" and col != "Visitor_Seats":
+            column_map[col] = "Visitor_Seats"
+        elif col_lower == "sold" and col != "Sold":
+            column_map[col] = "Sold"
+        elif col_lower == "visited" and col != "Visited":
+            column_map[col] = "Visited"
+        elif col_lower == "customer" and col != "Customer":
+            column_map[col] = "Customer"
+        elif col_lower == "admit" and col != "Admit":
+            column_map[col] = "Admit"
+        elif col_lower == "seq" and col != "Seq":
+            column_map[col] = "Seq"
+        elif col_lower == "timestamp" and col != "Timestamp":
+            column_map[col] = "Timestamp"
+    
+    if column_map:
+        tickets_df = tickets_df.rename(columns=column_map)
+    
+    # Verify TicketID column exists (required)
+    if "TicketID" not in tickets_df.columns:
+        available_cols = ', '.join(tickets_df.columns.tolist())
+        raise ValueError(
+            f"TicketID column is required but not found in tickets table. "
+            f"Available columns: {available_cols}. "
+            f"Please ensure your database table has a 'TicketID' or 'ticket_id' column."
+        )
+    
+    # Normalize / clean - use safe column access
     if "Visitor_Seats" in tickets_df.columns:
         tickets_df["Visitor_Seats"] = pd.to_numeric(tickets_df["Visitor_Seats"], errors="coerce").fillna(0).astype(int)
     else:
@@ -105,17 +136,13 @@ def load_all_data():
     else:
         tickets_df["Seq"] = None
     
-    if "TicketID" in tickets_df.columns:
-        tickets_df["TicketID"] = tickets_df["TicketID"].astype(str).str.zfill(4)
-    else:
-        raise ValueError("TicketID column is required but not found in tickets table")
+    # Process TicketID - ensure it's string and zero-padded to 4 digits
+    tickets_df["TicketID"] = tickets_df["TicketID"].astype(str).str.zfill(4)
     
     if "Timestamp" in tickets_df.columns:
         tickets_df["Timestamp"] = tickets_df["Timestamp"].astype(str)
     else:
         tickets_df["Timestamp"] = None
-
-    
 
     return tickets_df, menu_df
 
@@ -588,7 +615,6 @@ with tabs[3]:
         else:
 
             st.error("❌ Incorrect Menu Password")
-
 
 
 
