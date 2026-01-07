@@ -3,6 +3,8 @@ import os
 import pandas as pd
 import streamlit as st
 from sqlalchemy import create_engine
+set ADMIN_RESET="admin123"
+set MENU_UPDATE="admin123"
 
 # -------------------------------------------------
 # BASIC CONFIG
@@ -535,4 +537,5 @@ with tabs[3]:
 
                 st.success("✅ Menu and Inventory synchronized.")
         else:
+
             st.error("❌ Incorrect Menu Password")
