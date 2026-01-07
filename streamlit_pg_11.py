@@ -64,16 +64,58 @@ def load_all_data():
     tickets_df = pd.read_sql("SELECT * FROM tickets", engine)
     menu_df = pd.read_sql("SELECT * FROM menu", engine)
 
-    # Normalize / clean
-    tickets_df["Visitor_Seats"] = pd.to_numeric(tickets_df.get("Visitor_Seats"), errors="coerce").fillna(0).astype(int)
-    tickets_df["Sold"] = tickets_df.get("Sold", False).fillna(False).astype(bool)
-    tickets_df["Visited"] = tickets_df.get("Visited", False).fillna(False).astype(bool)
-    tickets_df["Customer"] = tickets_df.get("Customer", "").fillna("").astype(str)
-    tickets_df["Admit"] = pd.to_numeric(tickets_df.get("Admit"), errors="coerce").fillna(1).astype(int)
-    tickets_df["Seq"] = pd.to_numeric(tickets_df.get("Seq"), errors="coerce")
-    tickets_df["TicketID"] = tickets_df.get("TicketID").astype(str).str.zfill(4)
-    # Ensure timestamp is string for display but retain tz info if present
-    tickets_df["Timestamp"] = tickets_df.get("Timestamp").astype(str)
+    # # Normalize / clean
+    # tickets_df["Visitor_Seats"] = pd.to_numeric(tickets_df.get("Visitor_Seats"), errors="coerce").fillna(0).astype(int)
+    # tickets_df["Sold"] = tickets_df.get("Sold", False).fillna(False).astype(bool)
+    # tickets_df["Visited"] = tickets_df.get("Visited", False).fillna(False).astype(bool)
+    # tickets_df["Customer"] = tickets_df.get("Customer", "").fillna("").astype(str)
+    # tickets_df["Admit"] = pd.to_numeric(tickets_df.get("Admit"), errors="coerce").fillna(1).astype(int)
+    # tickets_df["Seq"] = pd.to_numeric(tickets_df.get("Seq"), errors="coerce")
+    # tickets_df["TicketID"] = tickets_df.get("TicketID").astype(str).str.zfill(4)
+    # # Ensure timestamp is string for display but retain tz info if present
+    # tickets_df["Timestamp"] = tickets_df.get("Timestamp").astype(str)
+     # Normalize / clean - use safe column access
+    if "Visitor_Seats" in tickets_df.columns:
+        tickets_df["Visitor_Seats"] = pd.to_numeric(tickets_df["Visitor_Seats"], errors="coerce").fillna(0).astype(int)
+    else:
+        tickets_df["Visitor_Seats"] = 0
+    
+    if "Sold" in tickets_df.columns:
+        tickets_df["Sold"] = tickets_df["Sold"].fillna(False).astype(bool)
+    else:
+        tickets_df["Sold"] = False
+    
+    if "Visited" in tickets_df.columns:
+        tickets_df["Visited"] = tickets_df["Visited"].fillna(False).astype(bool)
+    else:
+        tickets_df["Visited"] = False
+    
+    if "Customer" in tickets_df.columns:
+        tickets_df["Customer"] = tickets_df["Customer"].fillna("").astype(str)
+    else:
+        tickets_df["Customer"] = ""
+    
+    if "Admit" in tickets_df.columns:
+        tickets_df["Admit"] = pd.to_numeric(tickets_df["Admit"], errors="coerce").fillna(1).astype(int)
+    else:
+        tickets_df["Admit"] = 1
+    
+    if "Seq" in tickets_df.columns:
+        tickets_df["Seq"] = pd.to_numeric(tickets_df["Seq"], errors="coerce")
+    else:
+        tickets_df["Seq"] = None
+    
+    if "TicketID" in tickets_df.columns:
+        tickets_df["TicketID"] = tickets_df["TicketID"].astype(str).str.zfill(4)
+    else:
+        raise ValueError("TicketID column is required but not found in tickets table")
+    
+    if "Timestamp" in tickets_df.columns:
+        tickets_df["Timestamp"] = tickets_df["Timestamp"].astype(str)
+    else:
+        tickets_df["Timestamp"] = None
+
+    
 
     return tickets_df, menu_df
 
@@ -546,6 +588,7 @@ with tabs[3]:
         else:
 
             st.error("❌ Incorrect Menu Password")
+
 
 
 
