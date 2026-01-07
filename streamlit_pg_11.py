@@ -489,9 +489,12 @@ with tabs[3]:
             st.error("Menu password not configured. Set in `st.secrets['app_passwords']['menu_update']`.")
         elif menu_pass_input == MENU_UPDATE_PASSWORD:
             # Build tickets from edited menu + preserve existing tickets if present
-            new_tickets_list = []
-            # Pre-map existing tickets for quick reuse
-            existing_map = {row["TicketID"]: row for _, row in tickets.iterrows()}
+            new_tickets_list: list[dict] = []
+            # Pre-map existing tickets for quick reuse (as plain dicts for DataFrame compatibility)
+            existing_map = {row["TicketID"]: row.to_dict() for _, row in tickets.iterrows()}
+            # new_tickets_list = []
+            # # Pre-map existing tickets for quick reuse
+            # existing_map = {row["TicketID"]: row for _, row in tickets.iterrows()}
 
             for _, m_row in edited_menu.iterrows():
                 try:
@@ -539,5 +542,6 @@ with tabs[3]:
         else:
 
             st.error("❌ Incorrect Menu Password")
+
 
 
