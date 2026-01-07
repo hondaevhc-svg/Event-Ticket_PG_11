@@ -64,12 +64,6 @@ def load_all_data():
     tickets_df = pd.read_sql("SELECT * FROM tickets", engine)
     menu_df = pd.read_sql("SELECT * FROM menu", engine)
 
-    # Handle empty table
-    if tickets_df.empty:
-        # Return empty dataframe with required columns
-        tickets_df = pd.DataFrame(columns=["TicketID", "Category", "Type", "Admit", "Seq", "Sold", "Visited", "Customer", "Visitor_Seats", "Timestamp"])
-        return tickets_df, menu_df
-    
     # Normalize column names - check for case-insensitive matches and common variations
     column_map = {}
     for col in tickets_df.columns:
@@ -92,11 +86,21 @@ def load_all_data():
             column_map[col] = "Seq"
         elif col_lower == "timestamp" and col != "Timestamp":
             column_map[col] = "Timestamp"
+        elif col_lower == "type" and col != "Type":
+            column_map[col] = "Type"
+        elif col_lower == "category" and col != "Category":
+            column_map[col] = "Category"
     
     if column_map:
         tickets_df = tickets_df.rename(columns=column_map)
     
-    # Verify TicketID column exists (required)
+    # Handle empty table after normalization
+    if tickets_df.empty:
+        # Return empty dataframe with required columns
+        tickets_df = pd.DataFrame(columns=["TicketID", "Category", "Type", "Admit", "Seq", "Sold", "Visited", "Customer", "Visitor_Seats", "Timestamp"])
+        return tickets_df, menu_df
+    
+    # Verify TicketID column exists (required) - only check if table is not empty
     if "TicketID" not in tickets_df.columns:
         available_cols = ', '.join(tickets_df.columns.tolist())
         raise ValueError(
@@ -143,6 +147,12 @@ def load_all_data():
         tickets_df["Timestamp"] = tickets_df["Timestamp"].astype(str)
     else:
         tickets_df["Timestamp"] = None
+    
+    # Ensure Type and Category columns exist (required for Dashboard)
+    if "Type" not in tickets_df.columns:
+        tickets_df["Type"] = ""
+    if "Category" not in tickets_df.columns:
+        tickets_df["Category"] = ""
 
     return tickets_df, menu_df
 
@@ -181,19 +191,38 @@ def custom_sort(df: pd.DataFrame) -> pd.DataFrame:
     return df.assign(_k=sort_key).sort_values("_k").drop(columns="_k")
 
 # Load data once at start; keep references updated after actions to avoid reruns
-tickets, menu = load_all_data()
+try:
+    tickets, menu = load_all_data()
+except Exception as e:
+    st.error(f"Error loading data: {str(e)}")
+    # Create empty dataframes as fallback
+    tickets = pd.DataFrame(columns=["TicketID", "Category", "Type", "Admit", "Seq", "Sold", "Visited", "Customer", "Visitor_Seats", "Timestamp"])
+    menu = pd.DataFrame()
+    st.exception(e)
 
 # -------------------------------------------------
 # SIDEBAR
 # -------------------------------------------------
 with st.sidebar:
     st.header("Admin Settings")
+    
+    # Debug info (can be removed later)
+    with st.expander("🔍 Debug Info", expanded=False):
+        st.write(f"**Tickets loaded:** {len(tickets)} rows")
+        if not tickets.empty:
+            st.write(f"**Columns:** {', '.join(tickets.columns.tolist())}")
+        else:
+            st.write("**Status:** Empty dataframe")
 
     if st.button("🔄 Refresh Data", use_container_width=True):
         st.cache_data.clear()
         # Reload in-memory for immediate UI update after refresh
-        tickets, menu = load_all_data()
-        st.toast("Data refreshed")
+        try:
+            tickets, menu = load_all_data()
+            st.toast("Data refreshed")
+        except Exception as e:
+            st.error(f"Error refreshing data: {str(e)}")
+            st.exception(e)
 
     #admin_pass_input = st.text_input("Reset Database Password", type="password", key="admin_pass")
     admin_pass_input = st.text_input("Reset Database Password", type="password")
