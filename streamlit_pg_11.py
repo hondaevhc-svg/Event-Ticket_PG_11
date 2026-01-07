@@ -140,6 +140,7 @@ with st.sidebar:
             tickets.loc[:, ["Timestamp"]] = None
             save_tickets_df(tickets)
             st.success("✅ Database has been reset.")
+            st.rerun()
             #st.session_state["admin_pass"] = ""
         else:
             st.error("❌ Incorrect Admin Password")
@@ -540,10 +541,12 @@ with tabs[3]:
                 menu = edited_menu_clean
 
                 st.success("✅ Menu and Inventory synchronized.")
+                st.rerun()
                 #st.session_state["menu_pass"] = ""
         else:
 
             st.error("❌ Incorrect Menu Password")
+
 
 
 
